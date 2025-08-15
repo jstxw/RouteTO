@@ -1,10 +1,13 @@
 from typing import List, Optional
 from fastapi import APIRouter, Query, HTTPException, UploadFile, File, Body
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
 from schemas.crime import CrimePoint, ClusterPoint
 from services import data_loader
 from services.clusters import kmeans_clusters
 from core.config import settings
-import os
 
 router = APIRouter(prefix="", tags=["crimes"])
 

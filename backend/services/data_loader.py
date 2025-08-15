@@ -1,5 +1,8 @@
 import os, pandas as pd
 from typing import List
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
 from core.config import settings
 
 DF = None  # cached dataframe
@@ -14,9 +17,25 @@ def _infer_column(df: pd.DataFrame, preferred: str, alts: List[str]) -> str:
     raise KeyError(f"Column not found for {preferred}")
 
 def load_dataset(path: str) -> pd.DataFrame:
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"DATA_PATH not found: {path}")
-    df = pd.read_csv(path) if path.endswith(".csv") else pd.read_json(path)
+    # Try multiple path variations
+    paths_to_try = [
+        path,
+        os.path.join("..", path),
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), path),
+        os.path.join("/Users/jstwx07/Desktop/projects/RouteTO", path)
+    ]
+    
+    actual_path = None
+    for p in paths_to_try:
+        if os.path.exists(p):
+            actual_path = p
+            break
+    
+    if not actual_path:
+        raise FileNotFoundError(f"DATA_PATH not found in any of: {paths_to_try}")
+    
+    print(f"📁 Loading data from: {actual_path}")
+    df = pd.read_csv(actual_path) if actual_path.endswith(".csv") else pd.read_json(actual_path)
     lat  = _infer_column(df, settings.LAT_COL,  ["Latitude","latitude","Y","y"])
     lng  = _infer_column(df, settings.LNG_COL,  ["Longitude","longitude","X","x"])
     date = _infer_column(df, settings.DATE_COL, ["occurrence_date","Date","reported_date","date_occured","occurrenceyear"])

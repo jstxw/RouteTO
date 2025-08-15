@@ -3,6 +3,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 import time, logging
+import sys
+import os
+sys.path.append(os.path.dirname(__file__))
 
 from routers.crimes import router as crimes_router
 #from routers.transit import router as transit_router  # you'll create this

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import L from 'leaflet';
 
-const RouteAnalysis = ({ map, onRouteSelect }) => {
+const RouteAnalysis = ({ map, selectedCrimeType, onCrimeTypeChange, dateFilter, onDateFilterChange, onRouteSelect }) => {
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [routes, setRoutes] = useState([]);
     const [startPoint, setStartPoint] = useState(null);
@@ -10,7 +10,6 @@ const RouteAnalysis = ({ map, onRouteSelect }) => {
     const [isSelectingPoints, setIsSelectingPoints] = useState(false);
     const [currentStep, setCurrentStep] = useState('start'); // 'start', 'end', 'done'
     const [analysis, setAnalysis] = useState(null);
-    const [selectedCrimeType, setSelectedCrimeType] = useState('All Crimes');
     const routeLayersRef = useRef([]);
     const markersRef = useRef([]);
 
@@ -112,8 +111,9 @@ const RouteAnalysis = ({ map, onRouteSelect }) => {
             let response;
             try {
                 const crimeTypeParam = selectedCrimeType === 'All Crimes' ? '' : `&crime_type=${encodeURIComponent(selectedCrimeType)}`;
+                const sortParam = dateFilter !== 'none' ? `&sort=recent&date_filter=${dateFilter}` : '';
                 response = await fetch(
-                    `http://localhost:8002/routes/analyze?start_lat=${startPoint.lat}&start_lng=${startPoint.lng}&end_lat=${endPoint.lat}&end_lng=${endPoint.lng}&buffer_m=50${crimeTypeParam}`
+                    `http://localhost:8002/routes/analyze?start_lat=${startPoint.lat}&start_lng=${startPoint.lng}&end_lat=${endPoint.lat}&end_lng=${endPoint.lng}&buffer_m=50${crimeTypeParam}${sortParam}`
                 );
             } catch (error) {
                 // Fallback to basic OSRM routes if analysis fails
@@ -316,7 +316,7 @@ const RouteAnalysis = ({ map, onRouteSelect }) => {
     return (
         <div className="route-analysis-panel" style={{
             position: 'absolute',
-            top: '10px',
+            top: '70px', // Just below navbar with minimal gap, aligned with view controls
             right: '10px',
             background: 'white',
             padding: '15px',
@@ -324,7 +324,9 @@ const RouteAnalysis = ({ map, onRouteSelect }) => {
             boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
             zIndex: 1000,
             minWidth: '250px',
-            maxWidth: '300px'
+            maxWidth: '300px',
+            height: 'fit-content', // Dynamic height based on content
+            transition: 'all 0.3s ease' // Smooth transitions for size changes
         }}>
             {/* RouteTO Title */}
             <div style={{
@@ -334,13 +336,48 @@ const RouteAnalysis = ({ map, onRouteSelect }) => {
                 borderBottom: '1px solid #e5e7eb'
             }}>
                 <h2 style={{
-                    margin: 0,
+                    margin: '0 0 10px 0',
                     color: '#3b82f6',
                     fontSize: '20px',
                     fontWeight: 'bold'
                 }}>
                     RouteTO
                 </h2>
+
+                {/* Recency Dropdown */}
+                <div style={{ marginTop: '8px' }}>
+                    <label style={{
+                        display: 'block',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        marginBottom: '5px',
+                        color: '#374151',
+                        textAlign: 'left'
+                    }}>
+                        Filter by Crime Date:
+                    </label>
+                    <select
+                        value={dateFilter}
+                        onChange={(e) => onDateFilterChange(e.target.value)}
+                        style={{
+                            width: '100%',
+                            padding: '6px 8px',
+                            fontSize: '12px',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '4px',
+                            background: 'white',
+                            color: '#374151',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        <option value="none">All Crimes</option>
+                        <option value="14days">Last 14 Days</option>
+                        <option value="1month">Last Month</option>
+                        <option value="6months">Last Six Months</option>
+                        <option value="1year">Last Year</option>
+
+                    </select>
+                </div>
             </div>
 
             {/* Crime Type Filter */}
@@ -356,7 +393,7 @@ const RouteAnalysis = ({ map, onRouteSelect }) => {
                 </label>
                 <select
                     value={selectedCrimeType}
-                    onChange={(e) => setSelectedCrimeType(e.target.value)}
+                    onChange={(e) => onCrimeTypeChange(e.target.value)}
                     style={{
                         width: '100%',
                         padding: '6px 8px',

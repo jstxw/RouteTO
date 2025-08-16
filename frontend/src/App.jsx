@@ -1,7 +1,11 @@
-import React, { useState } from "react";
-import HomePage from "./Homepage.jsx";
-import "./App.css";
-import LeafletMaps from "./components/LeafletMaps.jsx";
+import { useState } from 'react'
+import reactLogo from './assets/react.svg'
+import viteLogo from '/vite.svg'
+
+import './App.css'
+import 'leaflet/dist/leaflet.css';
+
+import LeafletMaps from './components/LeafletMaps';
 
 const App = () => {
   const [activePage, setActivePage] = useState("map");
@@ -14,23 +18,7 @@ const App = () => {
       width: '100vw',
       overflow: 'hidden'
     }}>
-      <div className="toggle-bar">
-        <button
-          className={activePage === "home" ? "active" : ""}
-          onClick={() => setActivePage("home")}
-        >
-          Home
-        </button>
-        <button
-          className={activePage === "map" ? "active" : ""}
-          onClick={() => setActivePage("map")}
-        >
-          Map
-        </button>
-      </div>
-
-      {activePage === "home" && <HomePage />}
-      {activePage === "map" && <LeafletMaps />}
+      <LeafletMaps />
     </div>
   );
 };

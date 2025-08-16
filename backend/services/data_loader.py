@@ -59,7 +59,7 @@ def filter_df(start=None, end=None, crime_type=None, bbox=None):
     if start: df = df[df["date"] >= pd.to_datetime(start, utc=True)]
     if end:   df = df[df["date"] <= pd.to_datetime(end,   utc=True)]
     if crime_type:
-        df = df[df["crime_type"].str.contains(crime_type, case=False, na=False)]
+        df = df[df["crime_type"].str.lower() == crime_type.lower()]
     if bbox:
         min_lng, min_lat, max_lng, max_lat = map(float, bbox.split(","))
         df = df[(df.lat>=min_lat)&(df.lat<=max_lat)&(df.lng>=min_lng)&(df.lng<=max_lng)]

@@ -1,0 +1,70 @@
+/* Leaflet Map Interaction Styles */
+.leaflet-container {
+    cursor: grab !important;
+    pointer-events: auto !important;
+}
+
+.leaflet-container:active {
+    cursor: grabbing !important;
+}
+
+.leaflet-dragging .leaflet-container {
+    cursor: grabbing !important;
+}
+
+.leaflet-grab {
+    cursor: grab !important;
+}
+
+.leaflet-crosshair .leaflet-container {
+    cursor: crosshair !important;
+}
+
+/* Ensure map div has proper interaction */
+#map {
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+}
+
+/* Fix for potential CSS conflicts */
+#map,
+#map * {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+}
+
+/* Ensure dragging works */
+.leaflet-container,
+.leaflet-pane,
+.leaflet-map-pane,
+.leaflet-tile-pane,
+.leaflet-objects-pane {
+    pointer-events: auto !important;
+}
+
+/* Force proper positioning for map panes */
+.leaflet-map-pane {
+    position: relative !important;
+}
+
+.leaflet-tile-pane {
+    position: relative !important;
+}
+
+/* Ensure map updates properly during drag */
+.leaflet-dragging .leaflet-map-pane {
+    transition: none !important;
+    transform-origin: 0 0 !important;
+}
+
+/* Ensure floating controls don't interfere */
+.floating-controls {
+    pointer-events: auto !important;
+    z-index: 1000 !important;
+}

@@ -18,12 +18,7 @@ const App = () => {
         overflow: 'hidden'
       }}>
         <Routes>
-          <Route path="/" element={
-            <div>
-              <Nav />
-              <HomePage />
-            </div>
-          } />
+          <Route path="/" element={<HomePage />} />
           <Route path="/map" element={
             <div style={{ height: '100vh', width: '100vw', position: 'relative' }}>
               <Nav />

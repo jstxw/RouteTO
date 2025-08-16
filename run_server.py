@@ -14,15 +14,20 @@ import uvicorn
 from backend.main import app
 
 if __name__ == "__main__":
-    print("🚀 Starting RouteTO API server...")
-    print("📍 API Documentation: http://localhost:8000/docs")
-    print("🏥 Health Check: http://localhost:8000/")
-    print("🔍 Crime Data: http://localhost:8000/crimes")
+    # Get port from environment variable (Render sets this automatically)
+    port = int(os.environ.get("PORT", 8000))
     
+    print("🚀 Starting RouteTO API server...")
+    print(f"📍 Server running on port {port}")
+    print("📚 API Documentation: /docs")
+    print("🏥 Health Check: /")
+    print("🔍 Crime Data: /crimes")
+    
+    # Production configuration
     uvicorn.run(
         app, 
         host="0.0.0.0", 
-        port=8000, 
-        reload=True,
+        port=port, 
+        reload=False,  # Disable reload in production
         log_level="info"
     )

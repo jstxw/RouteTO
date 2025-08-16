@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet.heat';
+import RouteAnalysis from './RouteAnalysis';
+import FloatingTitle from './FloatingTitle';
 import {
   fetchCrimesGeoJSON,
   fetchClustersGeoJSON,
@@ -9,6 +11,7 @@ import {
   createCrimePopup,
   createClusterPopup,
   convertToHeatmapData,
+  convertToWeightedHeatmapData,
   getHeatmapConfig
 } from '../utils/api';
 
@@ -23,53 +26,86 @@ function LeafletMaps() {
   const mapRef = useRef(null);
 
   useEffect(() => {
+    // Check if map is already initialized
+    if (map || mapRef.current) {
+      return;
+    }
+
     // Small delay to ensure DOM is ready
     setTimeout(() => {
-      // Initialize the map
-      const mapInstance = L.map('map', {
-        zoomControl: false // We'll add custom controls
-      }).setView([43.6532, -79.3832], 11); // Toronto coordinates
+      const mapContainer = document.getElementById('map');
+      
+      // Check if container exists and is not already initialized
+      if (!mapContainer) {
+        console.error('Map container not found');
+        return;
+      }
 
-      setMap(mapInstance);
-      mapRef.current = mapInstance;
+      // Clear any existing map instance
+      if (mapContainer._leaflet_id) {
+        console.warn('Map container already initialized, cleaning up...');
+        mapContainer._leaflet_id = null;
+      }
 
-      // Add zoom control to bottom right
-      L.control.zoom({
-        position: 'bottomleft'
-      }).addTo(mapInstance);
+      try {
+        // Initialize the map
+        const mapInstance = L.map('map', {
+          zoomControl: false // We'll add custom controls
+        }).setView([43.6532, -79.3832], 11); // Toronto coordinates
 
-      // Add OpenStreetMap tiles
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-      }).addTo(mapInstance);
+        setMap(mapInstance);
+        mapRef.current = mapInstance;
 
-      // Force resize after initialization
-      setTimeout(() => {
-        mapInstance.invalidateSize();
-        console.log('Map container size:', document.getElementById('map').getBoundingClientRect());
-      }, 100);
+        // Add zoom control to bottom right
+        L.control.zoom({
+          position: 'bottomleft'
+        }).addTo(mapInstance);
 
-      // Load initial data
-      loadMapData(mapInstance);
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors',
+        }).addTo(mapInstance);
 
-      // Add event listener for map movement to update data based on bbox
-      mapInstance.on('moveend', () => {
+        // Force resize after initialization
+        setTimeout(() => {
+          mapInstance.invalidateSize();
+          console.log('Map container size:', document.getElementById('map').getBoundingClientRect());
+        }, 100);
+
+        // Load initial data
         loadMapData(mapInstance);
-      });
 
-      // Add zoom event listener for heatmap configuration updates
-      mapInstance.on('zoomend', () => {
-        if (viewMode === 'heatmap' && heatmapLayer) {
-          updateHeatmapConfig(mapInstance);
-        }
-      });
+        // Add event listener for map movement to update data based on bbox
+        mapInstance.on('moveend', () => {
+          loadMapData(mapInstance);
+        });
 
-      // Cleanup on unmount
-      return () => {
-        mapInstance.remove();
-      };
+        // Add zoom event listener for heatmap configuration updates
+        mapInstance.on('zoomend', () => {
+          if (viewMode === 'heatmap' && heatmapLayer) {
+            updateHeatmapConfig(mapInstance);
+          }
+        });
+
+      } catch (error) {
+        console.error('Failed to initialize map:', error);
+        setError('Failed to initialize map. Please refresh the page.');
+      }
     }, 50);
-  }, []);
+
+    // Cleanup function
+    return () => {
+      if (mapRef.current) {
+        try {
+          mapRef.current.remove();
+          mapRef.current = null;
+          setMap(null);
+        } catch (error) {
+          console.warn('Error during map cleanup:', error);
+        }
+      }
+    };
+  }, []); // Empty dependency array to run only once
 
   // Handle window resize
   useEffect(() => {
@@ -203,8 +239,8 @@ function LeafletMaps() {
         mapInstance.removeLayer(heatmapLayer);
       }
 
-      // Convert GeoJSON to heatmap data format
-      const heatmapData = convertToHeatmapData(geojsonData);
+      // Convert GeoJSON to weighted heatmap data format
+      const heatmapData = convertToWeightedHeatmapData(geojsonData);
 
       if (heatmapData.length === 0) {
         console.warn('No heatmap data available');
@@ -320,20 +356,7 @@ function LeafletMaps() {
       </div>
 
       {/* Floating Title */}
-      <div style={{
-        position: 'absolute',
-        top: '20px',
-        right: '20px',
-        padding: '10px 15px',
-        background: 'rgba(248, 249, 250, 0.95)',
-        borderRadius: '8px',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.3)',
-        zIndex: 1000,
-        backdropFilter: 'blur(5px)'
-      }}>
-        <h2 style={{ margin: 0, color: '#333', fontSize: '18px' }}>RouteTO</h2>
-        <p style={{ margin: 0, color: '#666', fontSize: '12px' }}>Toronto Crime Data</p>
-      </div>
+      <FloatingTitle />
 
       {/* Fullscreen Map */}
       <div
@@ -379,6 +402,9 @@ function LeafletMaps() {
             {error}
           </div>
         )}
+        
+        {/* Route Analysis Component */}
+        {map && <RouteAnalysis map={map} />}
       </div>
     </div>
   );

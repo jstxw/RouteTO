@@ -133,3 +133,105 @@ def get_clusters_geojson(
     }
     
     return geojson
+
+
+# NEW SPATIAL ENDPOINTS - Now enabled with spatial packages installed
+
+@router.get("/crimes/radius", response_model=List[CrimePoint])
+def get_crimes_within_radius(
+    response: Response,
+    lat: float = Query(..., description="Center latitude"),
+    lng: float = Query(..., description="Center longitude"), 
+    radius: float = Query(..., description="Search radius in meters"),
+    limit: int = Query(1000, ge=1, le=10000)
+):
+    """Find crimes within specified radius of a point"""
+    # Add caching headers
+    add_cache_headers(response, "api", 300)
+    response.headers["ETag"] = f'"crimes-radius-{hash((lat, lng, radius, limit))}"'
+    
+    try:
+        from services import spatial_data_loader
+        df = spatial_data_loader.query_radius(lat, lng, radius, limit)
+        return df.to_dict("records")
+    except ImportError:
+        raise HTTPException(503, "Spatial analysis not available - missing spatial packages")
+
+
+@router.get("/crimes/nearest", response_model=List[CrimePoint])
+def get_nearest_crimes(
+    response: Response,
+    lat: float = Query(..., description="Center latitude"),
+    lng: float = Query(..., description="Center longitude"),
+    count: int = Query(10, ge=1, le=100)
+):
+    """Find nearest crimes to a point"""
+    # Add caching headers
+    add_cache_headers(response, "api", 300)
+    response.headers["ETag"] = f'"crimes-nearest-{hash((lat, lng, count))}"'
+    
+    try:
+        from services import spatial_data_loader
+        df = spatial_data_loader.query_nearest(lat, lng, count)
+        return df.to_dict("records")
+    except ImportError:
+        raise HTTPException(503, "Spatial analysis not available - missing spatial packages")
+
+
+@router.get("/crimes/radius/geojson", response_model=GeoJSONFeatureCollection)
+def get_crimes_within_radius_geojson(
+    response: Response,
+    lat: float = Query(..., description="Center latitude"),
+    lng: float = Query(..., description="Center longitude"),
+    radius: float = Query(..., description="Search radius in meters"),
+    limit: int = Query(1000, ge=1, le=10000)
+) -> Dict[str, Any]:
+    """Find crimes within radius in GeoJSON format"""
+    # Add caching headers
+    add_cache_headers(response, "geojson", 300)
+    response.headers["ETag"] = f'"crimes-radius-geojson-{hash((lat, lng, radius, limit))}"'
+    
+    try:
+        from services import spatial_data_loader
+        df = spatial_data_loader.query_radius(lat, lng, radius, limit)
+        
+        geojson = dataframe_to_geojson(df)
+        geojson["metadata"] = {
+            "total_features": len(geojson["features"]),
+            "search_center": {"lat": lat, "lng": lng},
+            "search_radius_meters": radius,
+            "query_type": "radius"
+        }
+        
+        return geojson
+    except ImportError:
+        raise HTTPException(503, "Spatial analysis not available - missing spatial packages")
+
+
+@router.get("/crimes/nearest/geojson", response_model=GeoJSONFeatureCollection)
+def get_nearest_crimes_geojson(
+    response: Response,
+    lat: float = Query(..., description="Center latitude"),
+    lng: float = Query(..., description="Center longitude"),
+    count: int = Query(10, ge=1, le=100)
+) -> Dict[str, Any]:
+    """Find nearest crimes in GeoJSON format"""
+    # Add caching headers
+    add_cache_headers(response, "geojson", 300)
+    response.headers["ETag"] = f'"crimes-nearest-geojson-{hash((lat, lng, count))}"'
+    
+    try:
+        from services import spatial_data_loader
+        df = spatial_data_loader.query_nearest(lat, lng, count)
+        
+        geojson = dataframe_to_geojson(df)
+        geojson["metadata"] = {
+            "total_features": len(geojson["features"]),
+            "search_center": {"lat": lat, "lng": lng},
+            "count_requested": count,
+            "query_type": "nearest"
+        }
+        
+        return geojson
+    except ImportError:
+        raise HTTPException(503, "Spatial analysis not available - missing spatial packages")

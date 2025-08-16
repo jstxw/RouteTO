@@ -1,9 +1,9 @@
 /**
  * API utilities for RouteTO frontend
- * Handles communication with the backend API including GeoJSON endpoints
+ * Handles communication with the backend API including GeoJSON and spatial endpoints
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8002';
 
 /**
  * Fetch crime data in GeoJSON format
@@ -155,22 +155,24 @@ export function createClusterPopup(feature) {
 }
 
 /**
- * Get weight for crime type (for heatmap intensity)
+ * Calculate crime weight for visualization
  * @param {string} crimeType - Type of crime
- * @returns {number} Weight value between 0.3 and 1.0
+ * @param {string} dateStr - Optional: Crime date for recency calculation
+ * @returns {number} Weight value between 0.2 and 1.0
  */
-export function getCrimeWeight(crimeType) {
-    const weights = {
+export function getCrimeWeight(crimeType, dateStr = null) {
+    // Base severity weights
+    const severityWeights = {
         // Violent crimes - highest weight
         'assault': 1.0,
         'homicide': 1.0,
-        'robbery': 1.0,
+        'robbery': 0.9,
         'sexual': 1.0,
 
         // Property crimes - medium weight
         'theft': 0.6,
-        'break': 0.6,
-        'burglary': 0.6,
+        'break': 0.7,
+        'burglary': 0.7,
         'auto theft': 0.6,
         'fraud': 0.6,
 
@@ -181,13 +183,36 @@ export function getCrimeWeight(crimeType) {
         'other': 0.3
     };
 
+    // Get base severity
     const lowerType = crimeType.toLowerCase();
-    for (const [key, weight] of Object.entries(weights)) {
+    let severity = 0.5; // Default for unknown types
+    
+    for (const [key, weight] of Object.entries(severityWeights)) {
         if (lowerType.includes(key)) {
-            return weight;
+            severity = weight;
+            break;
         }
     }
-    return 0.3; // Default weight for unknown crimes
+
+    // If no date provided, return severity only (legacy behavior)
+    if (!dateStr) {
+        return Math.max(0.3, severity);
+    }
+
+    // Calculate recency factor
+    try {
+        const crimeDate = new Date(dateStr);
+        const now = new Date();
+        const ageDays = (now - crimeDate) / (1000 * 60 * 60 * 24);
+        const recency = 1 / (1 + ageDays / 30);
+        
+        // Combined weight: 40% severity + 60% recency
+        const weight = 0.4 * severity + 0.6 * recency;
+        return Math.max(0.2, Math.min(1.0, weight));
+    } catch (error) {
+        // Fallback to severity-only if date parsing fails
+        return Math.max(0.3, severity);
+    }
 }
 
 /**
@@ -228,4 +253,83 @@ export function getHeatmapConfig(zoom = 11) {
             1.0: '#FF0000'   // Red for high intensity
         }
     };
+}
+
+/**
+ * NEW: Fetch crimes within radius of a point
+ * @param {number} lat - Center latitude
+ * @param {number} lng - Center longitude 
+ * @param {number} radius - Search radius in meters
+ * @param {number} limit - Maximum number of results
+ * @returns {Promise<Object>} GeoJSON FeatureCollection
+ */
+export async function fetchCrimesWithinRadius(lat, lng, radius, limit = 1000) {
+    const searchParams = new URLSearchParams({
+        lat: lat.toString(),
+        lng: lng.toString(),
+        radius: radius.toString(),
+        limit: limit.toString()
+    });
+
+    const url = `${API_BASE_URL}/crimes/radius/geojson?${searchParams.toString()}`;
+
+    try {
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error(`Failed to fetch crimes within radius: ${response.status} ${response.statusText}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching crimes within radius:', error);
+        throw error;
+    }
+}
+
+/**
+ * NEW: Fetch nearest crimes to a point
+ * @param {number} lat - Center latitude
+ * @param {number} lng - Center longitude
+ * @param {number} count - Number of nearest crimes to return
+ * @returns {Promise<Object>} GeoJSON FeatureCollection
+ */
+export async function fetchNearestCrimes(lat, lng, count = 10) {
+    const searchParams = new URLSearchParams({
+        lat: lat.toString(),
+        lng: lng.toString(),
+        count: count.toString()
+    });
+
+    const url = `${API_BASE_URL}/crimes/nearest/geojson?${searchParams.toString()}`;
+
+    try {
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error(`Failed to fetch nearest crimes: ${response.status} ${response.statusText}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching nearest crimes:', error);
+        throw error;
+    }
+}
+
+/**
+ * Enhanced heatmap data conversion with weight support
+ * @param {Object} geojson - GeoJSON FeatureCollection
+ * @returns {Array} Heatmap data array with weights
+ */
+export function convertToWeightedHeatmapData(geojson) {
+    if (!geojson || !geojson.features) return [];
+
+    return geojson.features.map(feature => {
+        const [lng, lat] = feature.geometry.coordinates;
+        // Use weight from spatial index if available, otherwise calculate
+        const weight = feature.properties.weight || getCrimeWeight(feature.properties.crime_type, feature.properties.date);
+        
+        return [lat, lng, weight];
+    });
 }

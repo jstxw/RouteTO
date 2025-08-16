@@ -24,7 +24,10 @@
   "dependencies": {
     "leaflet": "^1.9.4",
     "leaflet-defaulticon-compatibility": "^0.1.2",
-    "react-leaflet": "^5.0.0"
+    "numpy": "^0.0.1",
+    "pyproj": "^1.0.1",
+    "react-leaflet": "^5.0.0",
+    "shapely": "^0.2.3"
   },
   "devDependencies": {
     "vite": "^7.1.2"

@@ -3,7 +3,7 @@
  * Handles communication with the backend API including GeoJSON and spatial endpoints
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://routeto-12.onrender.com';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 /**
  * Fetch crime data in GeoJSON format

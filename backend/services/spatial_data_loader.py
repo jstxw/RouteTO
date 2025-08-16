@@ -290,3 +290,114 @@ def load_dataset(path: str) -> pd.DataFrame:
         return DF
     finally:
         settings.DATA_PATH = old_path
+
+
+def get_filtered_spatial_index(crime_type: str = None) -> Dict[str, Any]:
+    """
+    Get a spatial index filtered by crime type.
+    
+    Args:
+        crime_type: Crime type to filter by (e.g., 'Assault', 'Robbery', 'Theft')
+        
+    Returns:
+        Filtered spatial index with same structure as ensure_spatial_index()
+    """
+    if not crime_type:
+        return ensure_spatial_index()
+    
+    # Get the full spatial index
+    full_index = ensure_spatial_index()
+    
+    # Filter the dataframe by crime type
+    df = full_index['df'].copy()
+    df_filtered = df[df["crime_type"].str.contains(crime_type, case=False, na=False)]
+    
+    if len(df_filtered) == 0:
+        print(f"⚠️ No crimes found for type: {crime_type}")
+        return full_index  # Return full index if no matches
+    
+    print(f"🔍 Filtered to {len(df_filtered)} crimes of type: {crime_type}")
+    
+    # Rebuild spatial index with filtered data
+    temp_path = f"/tmp/filtered_spatial_index_{crime_type.replace(' ', '_')}.pkl"
+    try:
+        return load_index_from_df(df_filtered, temp_path)
+    except Exception as e:
+        print(f"❌ Error creating filtered spatial index: {e}")
+        return full_index  # Fallback to full index
+
+
+def load_index_from_df(df: pd.DataFrame, temp_path: str) -> Dict[str, Any]:
+    """Create spatial index from a filtered dataframe."""
+    # Reuse the existing load_index function but with filtered data
+    # Save filtered dataframe temporarily
+    df.to_csv(temp_path.replace('.pkl', '.csv'), index=False)
+    
+    # Load index from the filtered CSV
+    old_path = settings.DATA_PATH
+    settings.DATA_PATH = temp_path.replace('.pkl', '.csv')
+    try:
+        index = load_index(temp_path)
+        return index
+    finally:
+        settings.DATA_PATH = old_path
+        # Clean up temp file
+        if os.path.exists(temp_path.replace('.pkl', '.csv')):
+            os.remove(temp_path.replace('.pkl', '.csv'))
+
+
+def get_filtered_spatial_index(crime_type: str) -> Optional[Dict[str, Any]]:
+    """
+    Get spatial index filtered by specific crime type.
+    
+    Args:
+        crime_type: Type of crime to filter by (e.g., 'Assault', 'Robbery', 'Theft Over')
+        
+    Returns:
+        Filtered spatial index or None if filtering fails
+    """
+    try:
+        # Load the base dataframe
+        df = ensure_loaded()
+        if df is None or df.empty:
+            print(f"⚠️ Could not load crime data for filtering")
+            return None
+        
+        # Map common crime type names to the actual MCI_CATEGORY values
+        crime_type_mapping = {
+            'Assault': 'Assault',
+            'Auto Theft': 'Auto Theft', 
+            'Break and Enter': 'Break and Enter',
+            'Robbery': 'Robbery',
+            'Theft Over': 'Theft Over'
+        }
+        
+        # Get the actual column value to filter by
+        filter_value = crime_type_mapping.get(crime_type)
+        if not filter_value:
+            print(f"⚠️ Unknown crime type: {crime_type}")
+            return None
+        
+        # Find the MCI_CATEGORY column
+        mci_col = _infer_column(df, 'MCI_CATEGORY', ['MCI_CATEGORY', 'mci_category', 'category'])
+        if mci_col not in df.columns:
+            print(f"⚠️ MCI_CATEGORY column not found in crime data")
+            return None
+        
+        # Filter the dataframe
+        filtered_df = df[df[mci_col] == filter_value].copy()
+        
+        if filtered_df.empty:
+            print(f"⚠️ No {crime_type} crimes found in data")
+            return None
+        
+        print(f"✅ Filtered to {len(filtered_df)} {crime_type} crimes from {len(df)} total crimes")
+        
+        # Create spatial index from filtered data using temporary file
+        import tempfile
+        cache_path = os.path.join(tempfile.gettempdir(), f"spatial_index_{crime_type.lower().replace(' ', '_')}.pkl")
+        return load_index_from_df(filtered_df, cache_path)
+        
+    except Exception as e:
+        print(f"⚠️ Error creating filtered spatial index for {crime_type}: {e}")
+        return None

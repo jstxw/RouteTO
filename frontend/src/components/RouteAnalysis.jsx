@@ -10,8 +10,19 @@ const RouteAnalysis = ({ map, onRouteSelect }) => {
   const [isSelectingPoints, setIsSelectingPoints] = useState(false);
   const [currentStep, setCurrentStep] = useState('start'); // 'start', 'end', 'done'
   const [analysis, setAnalysis] = useState(null);
+  const [selectedCrimeType, setSelectedCrimeType] = useState('All Crimes');
   const routeLayersRef = useRef([]);
   const markersRef = useRef([]);
+
+  // Available crime types from Toronto data
+  const crimeTypes = [
+    'All Crimes',
+    'Assault',
+    'Auto Theft',
+    'Break and Enter',
+    'Robbery',
+    'Theft Over'
+  ];
 
   // Clean up map layers
   const clearLayers = () => {
@@ -100,8 +111,9 @@ const RouteAnalysis = ({ map, onRouteSelect }) => {
       // Try full route analysis with crime risk scoring first
       let response;
       try {
+        const crimeTypeParam = selectedCrimeType === 'All Crimes' ? '' : `&crime_type=${encodeURIComponent(selectedCrimeType)}`;
         response = await fetch(
-          `http://localhost:8002/routes/analyze?start_lat=${startPoint.lat}&start_lng=${startPoint.lng}&end_lat=${endPoint.lat}&end_lng=${endPoint.lng}&buffer_m=50`
+          `http://localhost:8002/routes/analyze?start_lat=${startPoint.lat}&start_lng=${startPoint.lng}&end_lat=${endPoint.lat}&end_lng=${endPoint.lng}&buffer_m=50${crimeTypeParam}`
         );
       } catch (error) {
         // Fallback to basic OSRM routes if analysis fails
@@ -330,6 +342,36 @@ const RouteAnalysis = ({ map, onRouteSelect }) => {
           RouteTO
         </h2>
       </div>
+
+      {/* Crime Type Filter */}
+      <div style={{ marginBottom: '15px' }}>
+        <label style={{ 
+          display: 'block', 
+          fontSize: '12px', 
+          fontWeight: '500', 
+          marginBottom: '5px',
+          color: '#374151'
+        }}>
+          Filter by Crime Type:
+        </label>
+        <select 
+          value={selectedCrimeType}
+          onChange={(e) => setSelectedCrimeType(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '6px 8px',
+            fontSize: '12px',
+            border: '1px solid #d1d5db',
+            borderRadius: '4px',
+            background: 'white',
+            color: '#374151'
+          }}
+        >
+          {crimeTypes.map(type => (
+            <option key={type} value={type}>{type}</option>
+          ))}
+        </select>
+      </div>
       
       {!isSelectingPoints && !startPoint ? (
         <button
@@ -349,7 +391,7 @@ const RouteAnalysis = ({ map, onRouteSelect }) => {
         </button>
       ) : isSelectingPoints ? (
         <div>
-          <p style={{ margin: '0 0 10px 0', fontSize: '14px' }}>
+          <p style={{ margin: '0', fontSize: '14px', lineHeight: '1.2', marginBottom: '4px' }}>
             {currentStep === 'start' ? 'Click map to select starting point' : 'Click map to select destination'}
           </p>
           <button

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import L from 'leaflet';
 
-const RouteAnalysis = ({ map, selectedCrimeType, onCrimeTypeChange, sortByRecency, onSortByRecencyChange, onRouteSelect }) => {
+const RouteAnalysis = ({ map, selectedCrimeType, onCrimeTypeChange, dateFilter, onDateFilterChange, onRouteSelect }) => {
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [routes, setRoutes] = useState([]);
     const [startPoint, setStartPoint] = useState(null);
@@ -111,7 +111,7 @@ const RouteAnalysis = ({ map, selectedCrimeType, onCrimeTypeChange, sortByRecenc
             let response;
             try {
                 const crimeTypeParam = selectedCrimeType === 'All Crimes' ? '' : `&crime_type=${encodeURIComponent(selectedCrimeType)}`;
-                const sortParam = sortByRecency ? '&sort=recent' : '';
+                const sortParam = dateFilter !== 'none' ? `&sort=recent&date_filter=${dateFilter}` : '';
                 response = await fetch(
                     `http://localhost:8002/routes/analyze?start_lat=${startPoint.lat}&start_lng=${startPoint.lng}&end_lat=${endPoint.lat}&end_lng=${endPoint.lng}&buffer_m=50${crimeTypeParam}${sortParam}`
                 );
@@ -357,8 +357,8 @@ const RouteAnalysis = ({ map, selectedCrimeType, onCrimeTypeChange, sortByRecenc
                         Filter by Crime Date:
                     </label>
                     <select
-                        value={sortByRecency ? 'recent' : 'none'}
-                        onChange={(e) => onSortByRecencyChange(e.target.value === 'recent')}
+                        value={dateFilter}
+                        onChange={(e) => onDateFilterChange(e.target.value)}
                         style={{
                             width: '100%',
                             padding: '6px 8px',
@@ -371,10 +371,10 @@ const RouteAnalysis = ({ map, selectedCrimeType, onCrimeTypeChange, sortByRecenc
                         }}
                     >
                         <option value="none">All Crimes</option>
-                        <option value="recent">Last 14 Days</option>
-                        <option value="recent">Last Month</option>
-                        <option value="recent">Last Six Months</option>
-                        <option value="recent">Last Year</option>
+                        <option value="14days">Last 14 Days</option>
+                        <option value="1month">Last Month</option>
+                        <option value="6months">Last Six Months</option>
+                        <option value="1year">Last Year</option>
 
                     </select>
                 </div>

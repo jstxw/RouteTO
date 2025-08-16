@@ -26,7 +26,7 @@ function LeafletMaps() {
   const [error, setError] = useState(null);
   const [viewMode, setViewMode] = useState('markers'); // 'markers', 'clusters', 'heatmap'
   const [selectedCrimeType, setSelectedCrimeType] = useState('All Crimes'); // Add crime type state
-  const [sortByRecency, setSortByRecency] = useState(false); // Add recency sorting state
+  const [dateFilter, setDateFilter] = useState('none'); // Changed from sortByRecency to specific date filter
   const [controlsPosition, setControlsPosition] = useState({ x: 20, y: 70 }); // Draggable position
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -217,7 +217,7 @@ function LeafletMaps() {
         map.off('zoomend', handleZoomEnd);
       }
     };
-  }, [map, viewMode, selectedCrimeType, sortByRecency, heatmapLayer]); // Include state dependencies
+  }, [map, viewMode, selectedCrimeType, dateFilter, heatmapLayer]); // Include state dependencies
 
   // Handle window resize
   useEffect(() => {
@@ -252,7 +252,7 @@ function LeafletMaps() {
     if (map) {
       loadMapData(map);
     }
-  }, [sortByRecency]);
+  }, [dateFilter]);
 
   // Handle drag events for the floating controls
   const handleMouseDown = (e) => {
@@ -327,8 +327,9 @@ function LeafletMaps() {
       }
 
       // Add sorting parameter
-      if (sortByRecency) {
+      if (dateFilter !== 'none') {
         params.sort = 'recent';
+        params.date_filter = dateFilter;
       }
 
       console.log('🔍 Loading crime data with params:', params);
@@ -382,8 +383,9 @@ function LeafletMaps() {
       }
 
       // Add sorting parameter
-      if (sortByRecency) {
+      if (dateFilter !== 'none') {
         params.sort = 'recent';
+        params.date_filter = dateFilter;
       }
 
       const geojsonData = await fetchClustersGeoJSON(params);
@@ -432,8 +434,9 @@ function LeafletMaps() {
       }
 
       // Add sorting parameter
-      if (sortByRecency) {
+      if (dateFilter !== 'none') {
         params.sort = 'recent';
+        params.date_filter = dateFilter;
       }
 
       const geojsonData = await fetchCrimesGeoJSON(params);
@@ -607,8 +610,8 @@ function LeafletMaps() {
           </div>
         )}
 
-        {/* Recency Sorting Indicator */}
-        {sortByRecency && (
+        {/* Date Filter Indicator */}
+        {dateFilter !== 'none' && (
           <div style={{
             fontSize: '12px',
             color: '#28a745',
@@ -618,7 +621,10 @@ function LeafletMaps() {
             borderRadius: '4px',
             border: '1px solid rgba(40, 167, 69, 0.3)'
           }}>
-            📅 Showing recent crimes first
+            📅 Showing: {dateFilter === '14days' ? 'Last 14 Days' :
+              dateFilter === '1month' ? 'Last Month' :
+                dateFilter === '6months' ? 'Last 6 Months' :
+                  dateFilter === '1year' ? 'Last Year' : 'Recent crimes'}
           </div>
         )}
       </div>
@@ -682,8 +688,8 @@ function LeafletMaps() {
           map={map}
           selectedCrimeType={selectedCrimeType}
           onCrimeTypeChange={setSelectedCrimeType}
-          sortByRecency={sortByRecency}
-          onSortByRecencyChange={setSortByRecency}
+          dateFilter={dateFilter}
+          onDateFilterChange={setDateFilter}
         />}
 
         {/* Location Search Component - Standalone on left side */}

@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet.heat';
+import './LeafletMaps.css';
 import RouteAnalysis from './RouteAnalysis';
 import FloatingTitle from './FloatingTitle';
 import {
@@ -23,7 +24,10 @@ function LeafletMaps() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [viewMode, setViewMode] = useState('markers'); // 'markers', 'clusters', 'heatmap'
+  const [selectedCrimeType, setSelectedCrimeType] = useState('All Crimes'); // Add crime type state
+  const [sortByRecency, setSortByRecency] = useState(false); // Add recency sorting state
   const mapRef = useRef(null);
+  const mapContainerRef = useRef(null);
 
   useEffect(() => {
     // Check if map is already initialized
@@ -33,11 +37,18 @@ function LeafletMaps() {
 
     // Small delay to ensure DOM is ready
     setTimeout(() => {
-      const mapContainer = document.getElementById('map');
-      
+      const mapContainer = mapContainerRef.current;
+
       // Check if container exists and is not already initialized
       if (!mapContainer) {
         console.error('Map container not found');
+        return;
+      }
+
+      // Ensure container has dimensions
+      const rect = mapContainer.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) {
+        console.error('Map container has no dimensions:', rect);
         return;
       }
 
@@ -48,10 +59,35 @@ function LeafletMaps() {
       }
 
       try {
+        // Clear any existing content in the map container
+        mapContainer.innerHTML = '';
+
+        // Ensure container is visible and has proper styles
+        mapContainer.style.display = 'block';
+        mapContainer.style.position = 'absolute';
+        mapContainer.style.width = '100vw';
+        mapContainer.style.height = '100vh';
+
         // Initialize the map
-        const mapInstance = L.map('map', {
-          zoomControl: false // We'll add custom controls
-        }).setView([43.6532, -79.3832], 11); // Toronto coordinates
+        const mapInstance = L.map(mapContainer, {
+          zoomControl: false,
+          dragging: true,
+          touchZoom: true,
+          doubleClickZoom: true,
+          scrollWheelZoom: true,
+          boxZoom: true,
+          keyboard: true,
+          tap: true,
+          trackResize: true,
+          worldCopyJump: false,
+          closePopupOnClick: true,
+          bounceAtZoomLimits: true,
+          wheelPxPerZoomLevel: 60,
+          zoomSnap: 1,
+          zoomDelta: 1,
+          maxBounds: null,
+          maxBoundsViscosity: 0.0
+        }).setView([43.6532, -79.3832], 11);
 
         setMap(mapInstance);
         mapRef.current = mapInstance;
@@ -69,29 +105,74 @@ function LeafletMaps() {
         // Force resize after initialization
         setTimeout(() => {
           mapInstance.invalidateSize();
-          console.log('Map container size:', document.getElementById('map').getBoundingClientRect());
+          console.log('Map container size:', mapContainer.getBoundingClientRect());
+          console.log('Map dragging enabled:', mapInstance.dragging.enabled());
+          console.log('Map options:', mapInstance.options);
+
+          // Test map interaction
+          mapContainer.addEventListener('mousedown', (e) => {
+            console.log('Map mousedown event triggered', e);
+          });
+
+          // Ensure map is interactive
+          mapInstance.dragging.enable();
+          mapInstance.touchZoom.enable();
+          mapInstance.doubleClickZoom.enable();
+          mapInstance.scrollWheelZoom.enable();
+          mapInstance.boxZoom.enable();
+          mapInstance.keyboard.enable();
+
+          // Force re-enable dragging with different approach
+          setTimeout(() => {
+            mapInstance.dragging.disable();
+            mapInstance.dragging.enable();
+            console.log('Dragging re-enabled:', mapInstance.dragging.enabled());
+
+            // Test if dragging works by adding manual event listeners
+            mapInstance.on('dragstart', () => {
+              console.log('Drag started');
+              const mapPane = mapContainer.querySelector('.leaflet-map-pane');
+              if (mapPane) {
+                console.log('Map pane transform before drag:', mapPane.style.transform);
+              }
+            });
+            mapInstance.on('drag', () => {
+              console.log('Dragging...');
+              const mapPane = mapContainer.querySelector('.leaflet-map-pane');
+              if (mapPane) {
+                console.log('Map pane transform during drag:', mapPane.style.transform);
+              }
+              // Force map to invalidate size and refresh
+              mapInstance.invalidateSize();
+            });
+            mapInstance.on('dragend', () => {
+              console.log('Drag ended');
+              const mapPane = mapContainer.querySelector('.leaflet-map-pane');
+              if (mapPane) {
+                console.log('Map pane transform after drag:', mapPane.style.transform);
+              }
+              // Force complete refresh after drag
+              mapInstance.invalidateSize();
+              setTimeout(() => mapInstance.invalidateSize(), 50);
+            });
+
+            // Try clicking on the map programmatically to test
+            const leafletContainer = mapContainer.querySelector('.leaflet-container');
+            if (leafletContainer) {
+              console.log('Found leaflet container:', leafletContainer);
+              console.log('Container styles:', window.getComputedStyle(leafletContainer));
+            }
+          }, 200);
         }, 100);
 
         // Load initial data
         loadMapData(mapInstance);
 
-        // Add event listener for map movement to update data based on bbox
-        mapInstance.on('moveend', () => {
-          loadMapData(mapInstance);
-        });
-
-        // Add zoom event listener for heatmap configuration updates
-        mapInstance.on('zoomend', () => {
-          if (viewMode === 'heatmap' && heatmapLayer) {
-            updateHeatmapConfig(mapInstance);
-          }
-        });
-
       } catch (error) {
         console.error('Failed to initialize map:', error);
         setError('Failed to initialize map. Please refresh the page.');
       }
-    }, 50);
+    }, 150); // Increased timeout
 
     // Cleanup function
     return () => {
@@ -106,6 +187,33 @@ function LeafletMaps() {
       }
     };
   }, []); // Empty dependency array to run only once
+
+  // Handle map movement events - separate useEffect to get fresh state values
+  useEffect(() => {
+    if (!map) return;
+
+    const handleMapMove = () => {
+      loadMapData(map);
+    };
+
+    const handleZoomEnd = () => {
+      if (viewMode === 'heatmap' && heatmapLayer) {
+        updateHeatmapConfig(map);
+      }
+    };
+
+    // Add event listeners
+    map.on('moveend', handleMapMove);
+    map.on('zoomend', handleZoomEnd);
+
+    // Cleanup
+    return () => {
+      if (map) {
+        map.off('moveend', handleMapMove);
+        map.off('zoomend', handleZoomEnd);
+      }
+    };
+  }, [map, viewMode, selectedCrimeType, sortByRecency, heatmapLayer]); // Include state dependencies
 
   // Handle window resize
   useEffect(() => {
@@ -127,6 +235,20 @@ function LeafletMaps() {
       loadMapData(map);
     }
   }, [viewMode]);
+
+  // Handle crime type changes
+  useEffect(() => {
+    if (map) {
+      loadMapData(map);
+    }
+  }, [selectedCrimeType]);
+
+  // Handle recency sorting changes
+  useEffect(() => {
+    if (map) {
+      loadMapData(map);
+    }
+  }, [sortByRecency]);
 
   const loadMapData = async (mapInstance) => {
     setLoading(true);
@@ -155,9 +277,28 @@ function LeafletMaps() {
 
   const loadCrimeData = async (mapInstance, bbox) => {
     try {
-      const geojsonData = await fetchCrimesGeoJSON({
+      const params = {
         bbox,
         limit: 1000
+      };
+
+      // Add crime type filter if not "All Crimes"
+      if (selectedCrimeType !== 'All Crimes') {
+        params.crime_type = selectedCrimeType;
+      }
+
+      // Add sorting parameter
+      if (sortByRecency) {
+        params.sort = 'recent';
+      }
+
+      console.log('🔍 Loading crime data with params:', params);
+      const geojsonData = await fetchCrimesGeoJSON(params);
+      console.log('📊 Received crime data:', {
+        totalFeatures: geojsonData.features.length,
+        crimeTypes: [...new Set(geojsonData.features.map(f => f.properties.crime_type))],
+        selectedCrimeType,
+        bbox
       });
 
       // Remove existing crime layer
@@ -191,10 +332,22 @@ function LeafletMaps() {
 
   const loadClusterData = async (mapInstance, bbox) => {
     try {
-      const geojsonData = await fetchClustersGeoJSON({
+      const params = {
         bbox,
         k: 25
-      });
+      };
+
+      // Add crime type filter if not "All Crimes"
+      if (selectedCrimeType !== 'All Crimes') {
+        params.crime_type = selectedCrimeType;
+      }
+
+      // Add sorting parameter
+      if (sortByRecency) {
+        params.sort = 'recent';
+      }
+
+      const geojsonData = await fetchClustersGeoJSON(params);
 
       // Remove existing cluster layer
       if (clusterLayer) {
@@ -229,10 +382,22 @@ function LeafletMaps() {
 
   const loadHeatmapData = async (mapInstance, bbox) => {
     try {
-      const geojsonData = await fetchCrimesGeoJSON({
+      const params = {
         bbox,
         limit: 5000 // Higher limit for heatmap data
-      });
+      };
+
+      // Add crime type filter if not "All Crimes"
+      if (selectedCrimeType !== 'All Crimes') {
+        params.crime_type = selectedCrimeType;
+      }
+
+      // Add sorting parameter
+      if (sortByRecency) {
+        params.sort = 'recent';
+      }
+
+      const geojsonData = await fetchCrimesGeoJSON(params);
 
       // Remove existing heatmap layer
       if (heatmapLayer) {
@@ -293,7 +458,7 @@ function LeafletMaps() {
   return (
     <div style={{ position: 'relative', height: '100vh', width: '100vw' }}>
       {/* Floating View Mode Controls */}
-      <div style={{
+      <div className="floating-controls" style={{
         position: 'absolute',
         top: '20px',
         left: '20px',
@@ -302,57 +467,92 @@ function LeafletMaps() {
         borderRadius: '8px',
         boxShadow: '0 2px 10px rgba(0,0,0,0.3)',
         display: 'flex',
+        flexDirection: 'column',
         gap: '10px',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         zIndex: 1000,
-        backdropFilter: 'blur(5px)'
+        backdropFilter: 'blur(5px)',
+        pointerEvents: 'auto'
       }}>
-        <strong style={{ color: '#333' }}>View Mode:</strong>
-        <button
-          onClick={() => handleViewModeChange('markers')}
-          style={{
-            padding: '6px 12px',
-            backgroundColor: viewMode === 'markers' ? '#007bff' : '#6c757d',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
+        {/* View Mode Controls */}
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <strong style={{ color: '#333' }}>View Mode:</strong>
+          <button
+            onClick={() => handleViewModeChange('markers')}
+            style={{
+              padding: '6px 12px',
+              backgroundColor: viewMode === 'markers' ? '#007bff' : '#6c757d',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: '500'
+            }}
+          >
+            Individual Crimes
+          </button>
+          <button
+            onClick={() => handleViewModeChange('clusters')}
+            style={{
+              padding: '6px 12px',
+              backgroundColor: viewMode === 'clusters' ? '#007bff' : '#6c757d',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: '500'
+            }}
+          >
+            Crime Clusters
+          </button>
+          <button
+            onClick={() => handleViewModeChange('heatmap')}
+            style={{
+              padding: '6px 12px',
+              backgroundColor: viewMode === 'heatmap' ? '#007bff' : '#6c757d',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: '500'
+            }}
+          >
+            Crime Heatmap
+          </button>
+        </div>
+
+        {/* Crime Type Filter Indicator */}
+        {selectedCrimeType !== 'All Crimes' && (
+          <div style={{
             fontSize: '12px',
-            fontWeight: '500'
-          }}
-        >
-          Individual Crimes
-        </button>
-        <button
-          onClick={() => handleViewModeChange('clusters')}
-          style={{
-            padding: '6px 12px',
-            backgroundColor: viewMode === 'clusters' ? '#007bff' : '#6c757d',
-            color: 'white',
-            border: 'none',
+            color: '#007bff',
+            fontWeight: '500',
+            backgroundColor: 'rgba(0, 123, 255, 0.1)',
+            padding: '4px 8px',
             borderRadius: '4px',
-            cursor: 'pointer',
+            border: '1px solid rgba(0, 123, 255, 0.3)'
+          }}>
+            Filtered by: {selectedCrimeType}
+          </div>
+        )}
+
+        {/* Recency Sorting Indicator */}
+        {sortByRecency && (
+          <div style={{
             fontSize: '12px',
-            fontWeight: '500'
-          }}
-        >
-          Crime Clusters
-        </button>
-        <button
-          onClick={() => handleViewModeChange('heatmap')}
-          style={{
-            padding: '6px 12px',
-            backgroundColor: viewMode === 'heatmap' ? '#007bff' : '#6c757d',
-            color: 'white',
-            border: 'none',
+            color: '#28a745',
+            fontWeight: '500',
+            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+            padding: '4px 8px',
             borderRadius: '4px',
-            cursor: 'pointer',
-            fontSize: '12px',
-            fontWeight: '500'
-          }}
-        >
-          Crime Heatmap
-        </button>
+            border: '1px solid rgba(40, 167, 69, 0.3)'
+          }}>
+            📅 Showing recent crimes first
+          </div>
+        )}
       </div>
 
       {/* Floating Title */}
@@ -360,6 +560,7 @@ function LeafletMaps() {
 
       {/* Fullscreen Map */}
       <div
+        ref={mapContainerRef}
         id="map"
         style={{
           height: '100vh',
@@ -367,7 +568,12 @@ function LeafletMaps() {
           position: 'absolute',
           top: 0,
           left: 0,
-          zIndex: 1
+          zIndex: 1,
+          touchAction: 'manipulation',
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
+          MozUserSelect: 'none',
+          msUserSelect: 'none'
         }}
       >
         {loading && (
@@ -402,9 +608,15 @@ function LeafletMaps() {
             {error}
           </div>
         )}
-        
+
         {/* Route Analysis Component */}
-        {map && <RouteAnalysis map={map} />}
+        {map && <RouteAnalysis
+          map={map}
+          selectedCrimeType={selectedCrimeType}
+          onCrimeTypeChange={setSelectedCrimeType}
+          sortByRecency={sortByRecency}
+          onSortByRecencyChange={setSortByRecency}
+        />}
       </div>
     </div>
   );

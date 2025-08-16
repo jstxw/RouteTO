@@ -44,15 +44,24 @@ def get_crimes(
     end: Optional[str]   = Query(None),
     crime_type: Optional[str] = Query(None),
     bbox: Optional[str]  = Query(None, description="Bounding box as 'min_lng,min_lat,max_lng,max_lat'"),
+    sort: Optional[str] = Query(None, description="Sort order: 'recent' (newest first), 'oldest' (oldest first), or None"),
     limit: int = Query(5000, ge=1, le=50000),
     offset: int = Query(0, ge=0)
 ):
     # Add caching headers for map performance
     add_cache_headers(response, "api", 300)
-    response.headers["ETag"] = f'"crimes-{hash((start, end, crime_type, bbox, limit, offset))}"'
+    response.headers["ETag"] = f'"crimes-{hash((start, end, crime_type, bbox, sort, limit, offset))}"'
     
     df = data_loader.filter_df(start, end, crime_type, bbox)
-    return df.sort_values("date", ascending=False).iloc[offset:offset+limit].to_dict("records")
+    
+    # Apply sorting based on sort parameter
+    if sort == "recent":
+        df = df.sort_values("date", ascending=False)
+    elif sort == "oldest":
+        df = df.sort_values("date", ascending=True)
+    # If sort is None or any other value, no sorting is applied
+    
+    return df.iloc[offset:offset+limit].to_dict("records")
 
 @router.get("/crimes/geojson", response_model=GeoJSONFeatureCollection)
 def get_crimes_geojson(
@@ -61,16 +70,25 @@ def get_crimes_geojson(
     end: Optional[str]   = Query(None),
     crime_type: Optional[str] = Query(None),
     bbox: Optional[str]  = Query(None, description="Bounding box as 'min_lng,min_lat,max_lng,max_lat'"),
+    sort: Optional[str] = Query(None, description="Sort order: 'recent' (newest first), 'oldest' (oldest first), or None"),
     limit: int = Query(5000, ge=1, le=50000),
     offset: int = Query(0, ge=0)
 ) -> Dict[str, Any]:
     """Return crime data in GeoJSON format for better map integration"""
     # Add caching headers for map performance
     add_cache_headers(response, "geojson", 300)
-    response.headers["ETag"] = f'"crimes-geojson-{hash((start, end, crime_type, bbox, limit, offset))}"'
+    response.headers["ETag"] = f'"crimes-geojson-{hash((start, end, crime_type, bbox, sort, limit, offset))}"'
     
     df = data_loader.filter_df(start, end, crime_type, bbox)
-    crimes_data = df.sort_values("date", ascending=False).iloc[offset:offset+limit]
+    
+    # Apply sorting based on sort parameter
+    if sort == "recent":
+        df = df.sort_values("date", ascending=False)
+    elif sort == "oldest":
+        df = df.sort_values("date", ascending=True)
+    # If sort is None or any other value, no sorting is applied
+    
+    crimes_data = df.iloc[offset:offset+limit]
     
     geojson = dataframe_to_geojson(crimes_data)
     geojson["metadata"] = {
@@ -92,14 +110,25 @@ def get_clusters(
     end: Optional[str] = None,
     crime_type: Optional[str] = None,
     bbox: Optional[str] = Query(None, description="Bounding box as 'min_lng,min_lat,max_lng,max_lat'"),
+    sort: Optional[str] = Query(None, description="Sort order: 'recent' (newest first), 'oldest' (oldest first), or None"),
     k: int = Query(30, ge=1, le=500),
     max_points: int = Query(50_000, ge=100, le=200_000)
 ):
     # Add caching headers for map performance
     add_cache_headers(response, "api", 600)
-    response.headers["ETag"] = f'"clusters-{hash((start, end, crime_type, bbox, k, max_points))}"'
+    response.headers["ETag"] = f'"clusters-{hash((start, end, crime_type, bbox, sort, k, max_points))}"'
     
     df = data_loader.filter_df(start, end, crime_type, bbox)
+    
+    # Apply sorting for clustering - recent crimes may get higher weight
+    if sort == "recent":
+        df = df.sort_values("date", ascending=False)
+    elif sort == "oldest":
+        df = df.sort_values("date", ascending=True)
+    
+    # Limit points for clustering performance
+    if len(df) > max_points:
+        df = df.head(max_points)
     return kmeans_clusters(df, k=k, max_points=max_points)
 
 @router.get("/clusters/geojson", response_model=GeoJSONFeatureCollection)
@@ -109,15 +138,27 @@ def get_clusters_geojson(
     end: Optional[str] = None,
     crime_type: Optional[str] = None,
     bbox: Optional[str] = Query(None, description="Bounding box as 'min_lng,min_lat,max_lng,max_lat'"),
+    sort: Optional[str] = Query(None, description="Sort order: 'recent' (newest first), 'oldest' (oldest first), or None"),
     k: int = Query(30, ge=1, le=500),
     max_points: int = Query(50_000, ge=100, le=200_000)
 ) -> Dict[str, Any]:
     """Return cluster data in GeoJSON format for better map integration"""
     # Add caching headers for map performance
     add_cache_headers(response, "geojson", 600)
-    response.headers["ETag"] = f'"clusters-geojson-{hash((start, end, crime_type, bbox, k, max_points))}"'
+    response.headers["ETag"] = f'"clusters-geojson-{hash((start, end, crime_type, bbox, sort, k, max_points))}"'
     
     df = data_loader.filter_df(start, end, crime_type, bbox)
+    
+    # Apply sorting for clustering - recent crimes may get higher weight
+    if sort == "recent":
+        df = df.sort_values("date", ascending=False)
+    elif sort == "oldest":
+        df = df.sort_values("date", ascending=True)
+    
+    # Limit points for clustering performance
+    if len(df) > max_points:
+        df = df.head(max_points)
+    
     clusters_data = kmeans_clusters(df, k=k, max_points=max_points)
     
     geojson = clusters_to_geojson(clusters_data)

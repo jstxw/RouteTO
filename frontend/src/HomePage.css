@@ -609,7 +609,8 @@
 .footer-section {
   background: #374151;
   color: #d1d5db;
-  margin: 0 -2rem -3rem -2rem; /* Extend beyond container padding */
+  margin: 0 -2rem -3rem -2rem;
+  /* Extend beyond container padding */
   padding: 4rem 3rem 2rem;
 }
 

@@ -6,6 +6,7 @@ import './App.css'
 import 'leaflet/dist/leaflet.css';
 
 import LeafletMaps from './components/LeafletMaps';
+import Nav from './components/Nav';
 
 function App() {
   return (
@@ -16,7 +17,14 @@ function App() {
       width: '100vw',
       overflow: 'hidden'
     }}>
-      <LeafletMaps />
+      <Nav />
+      <div style={{
+        marginTop: '60px', // Account for fixed navbar height
+        height: 'calc(100vh - 60px)',
+        width: '100vw'
+      }}>
+        <LeafletMaps />
+      </div>
     </div>
   );
 }

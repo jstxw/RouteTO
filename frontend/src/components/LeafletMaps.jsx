@@ -26,6 +26,9 @@ function LeafletMaps() {
   const [viewMode, setViewMode] = useState('markers'); // 'markers', 'clusters', 'heatmap'
   const [selectedCrimeType, setSelectedCrimeType] = useState('All Crimes'); // Add crime type state
   const [sortByRecency, setSortByRecency] = useState(false); // Add recency sorting state
+  const [controlsPosition, setControlsPosition] = useState({ x: 20, y: 70 }); // Draggable position
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const mapRef = useRef(null);
   const mapContainerRef = useRef(null);
 
@@ -250,6 +253,41 @@ function LeafletMaps() {
     }
   }, [sortByRecency]);
 
+  // Handle drag events for the floating controls
+  const handleMouseDown = (e) => {
+    setIsDragging(true);
+    setDragStart({
+      x: e.clientX - controlsPosition.x,
+      y: e.clientY - controlsPosition.y
+    });
+    e.preventDefault();
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging) return;
+
+    setControlsPosition({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, dragStart, controlsPosition]);
+
   const loadMapData = async (mapInstance) => {
     setLoading(true);
     setError(null);
@@ -456,12 +494,12 @@ function LeafletMaps() {
   };
 
   return (
-    <div style={{ position: 'relative', height: '100vh', width: '100vw' }}>
+    <div style={{ position: 'relative', height: '100%', width: '100%' }}>
       {/* Floating View Mode Controls */}
       <div className="floating-controls" style={{
         position: 'absolute',
-        top: '20px',
-        left: '20px',
+        top: `${controlsPosition.y}px`,
+        left: `${controlsPosition.x}px`,
         padding: '10px',
         background: 'rgba(248, 249, 250, 0.95)',
         borderRadius: '8px',
@@ -472,13 +510,36 @@ function LeafletMaps() {
         alignItems: 'flex-start',
         zIndex: 1000,
         backdropFilter: 'blur(5px)',
-        pointerEvents: 'auto'
-      }}>
+        pointerEvents: 'auto',
+        transition: isDragging ? 'none' : 'all 0.3s ease',
+        cursor: isDragging ? 'grabbing' : 'grab',
+        userSelect: 'none'
+      }}
+        onMouseDown={handleMouseDown}>
+        {/* Drag Handle */}
+        <div style={{
+          width: '100%',
+          height: '20px',
+          background: 'linear-gradient(45deg, #ddd 25%, transparent 25%), linear-gradient(-45deg, #ddd 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ddd 75%), linear-gradient(-45deg, transparent 75%, #ddd 75%)',
+          backgroundSize: '4px 4px',
+          backgroundPosition: '0 0, 0 2px, 2px -2px, -2px 0px',
+          borderRadius: '4px',
+          marginBottom: '5px',
+          opacity: 0.5,
+          cursor: isDragging ? 'grabbing' : 'grab'
+        }}
+          onMouseDown={handleMouseDown}
+        />
+
         {/* View Mode Controls */}
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', pointerEvents: 'auto' }}
+          onClick={(e) => e.stopPropagation()}>
           <strong style={{ color: '#333' }}>View Mode:</strong>
           <button
-            onClick={() => handleViewModeChange('markers')}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleViewModeChange('markers');
+            }}
             style={{
               padding: '6px 12px',
               backgroundColor: viewMode === 'markers' ? '#007bff' : '#6c757d',
@@ -493,7 +554,10 @@ function LeafletMaps() {
             Individual Crimes
           </button>
           <button
-            onClick={() => handleViewModeChange('clusters')}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleViewModeChange('clusters');
+            }}
             style={{
               padding: '6px 12px',
               backgroundColor: viewMode === 'clusters' ? '#007bff' : '#6c757d',
@@ -508,7 +572,10 @@ function LeafletMaps() {
             Crime Clusters
           </button>
           <button
-            onClick={() => handleViewModeChange('heatmap')}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleViewModeChange('heatmap');
+            }}
             style={{
               padding: '6px 12px',
               backgroundColor: viewMode === 'heatmap' ? '#007bff' : '#6c757d',
@@ -563,8 +630,8 @@ function LeafletMaps() {
         ref={mapContainerRef}
         id="map"
         style={{
-          height: '100vh',
-          width: '100vw',
+          height: '100%',
+          width: '100%',
           position: 'absolute',
           top: 0,
           left: 0,

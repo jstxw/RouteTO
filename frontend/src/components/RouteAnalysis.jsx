@@ -314,9 +314,22 @@ const RouteAnalysis = ({ map, onRouteSelect }) => {
       minWidth: '250px',
       maxWidth: '300px'
     }}>
-      <h3 style={{ margin: '0 0 15px 0', fontSize: '16px', fontWeight: 'bold' }}>
-        Route Safety Analysis
-      </h3>
+      {/* RouteTO Title */}
+      <div style={{ 
+        textAlign: 'center', 
+        marginBottom: '15px',
+        padding: '0 0 8px 0',
+        borderBottom: '1px solid #e5e7eb'
+      }}>
+        <h2 style={{ 
+          margin: 0, 
+          color: '#3b82f6', 
+          fontSize: '20px',
+          fontWeight: 'bold'
+        }}>
+          RouteTO
+        </h2>
+      </div>
       
       {!isSelectingPoints && !startPoint ? (
         <button
@@ -397,19 +410,6 @@ const RouteAnalysis = ({ map, onRouteSelect }) => {
           
           {routes.length > 0 && (
             <div style={{ marginTop: '15px', fontSize: '12px' }}>
-              <h4 style={{ margin: '0 0 10px 0', fontSize: '14px' }}>Routes Found: {routes.length}</h4>
-              
-              {analysis && (
-                <div style={{ background: '#f3f4f6', padding: '8px', borderRadius: '4px', marginBottom: '10px' }}>
-                  <strong>Safest Route:</strong> Route {(analysis.safest_route || 0) + 1}
-                  {analysis.safety_improvement && (
-                    <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>
-                      {(analysis.safety_improvement * 100).toFixed(0)}% safer than alternatives
-                    </div>
-                  )}
-                </div>
-              )}
-              
               {routes.map((route, index) => (
                 <div key={index} style={{
                   padding: '8px',
@@ -418,32 +418,46 @@ const RouteAnalysis = ({ map, onRouteSelect }) => {
                   borderRadius: '4px',
                   border: '1px solid #e5e7eb'
                 }}>
-                  <strong>Route {index + 1}</strong>
+                  <strong style={{ color: '#1f2937', fontSize: '14px' }}>Route {index + 1}</strong>
                   {index === 0 && analysis && (
                     <span style={{ color: '#22c55e', marginLeft: '8px' }}>🛡️ SAFEST</span>
                   )}
                   {route.distance && (
-                    <div>Distance: {(route.distance / 1000).toFixed(1)} km</div>
+                    <div style={{ color: '#374151', fontWeight: '500', fontSize: '13px' }}>
+                      Distance: <span style={{ fontWeight: 'bold' }}>{(route.distance / 1000).toFixed(1)} km</span>
+                    </div>
                   )}
                   {route.duration && (
-                    <div>Duration: {Math.round(route.duration / 60)} min</div>
+                    <div style={{ color: '#374151', fontWeight: '500', fontSize: '13px' }}>
+                      Duration: <span style={{ fontWeight: 'bold' }}>{Math.round(route.duration / 60)} min</span>
+                    </div>
                   )}
                   {route.crimesDensity !== undefined && (
                     <div style={{ 
                       color: route.crimesDensity > 500 ? '#ef4444' : 
-                             route.crimesDensity > 200 ? '#f59e0b' : '#22c55e' 
+                             route.crimesDensity > 200 ? '#f59e0b' : '#22c55e',
+                      fontWeight: 'bold',
+                      fontSize: '13px'
                     }}>
-                      Crime Density: {route.crimesDensity.toFixed(1)} crimes/km
+                      Crime Density: <span style={{ fontSize: '14px' }}>{route.crimesDensity.toFixed(1)}</span> crimes/km
                     </div>
                   )}
                   {route.nearbyIncidents !== undefined && (
-                    <div style={{ color: '#6b7280' }}>
-                      Nearby Incidents: {route.nearbyIncidents}
+                    <div style={{ 
+                      color: '#6b7280',
+                      fontWeight: 'bold',
+                      fontSize: '13px'
+                    }}>
+                      Nearby Incidents: <span style={{ fontSize: '14px' }}>{route.nearbyIncidents}</span>
                     </div>
                   )}
                   {route.safetyRating !== undefined && (
-                    <div style={{ color: route.safetyRating > 70 ? '#22c55e' : '#f59e0b' }}>
-                      Safety Rating: {route.safetyRating.toFixed(0)}%
+                    <div style={{ 
+                      color: route.safetyRating > 70 ? '#22c55e' : '#f59e0b',
+                      fontWeight: 'bold',
+                      fontSize: '13px'
+                    }}>
+                      Safety Rating: <span style={{ fontSize: '14px' }}>{route.safetyRating.toFixed(0)}%</span>
                     </div>
                   )}
                 </div>

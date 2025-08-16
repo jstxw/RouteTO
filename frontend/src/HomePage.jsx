@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import "./HomePage.css";
 import { useNavigate } from 'react-router-dom';
+import routeToLogo from './assets/RouteTO__3_-removebg-preview_1.png';
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -111,8 +112,7 @@ const HomePage = () => {
       {/* Navigation Header */}
       <nav className="homepage-nav">
         <div className="nav-brand">
-          <div className="logo-icon">🛡️</div>
-          <span className="brand-name">RouteTO</span>
+          <img src={routeToLogo} alt="RouteTO" className="brand-logo" />
           <div className="nav-tagline">
             "Navigate with Confidence"
           </div>

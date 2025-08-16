@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import routeToLogo from '../assets/RouteTO__3_-removebg-preview_1.png';
 
 const Nav = () => {
     const navigate = useNavigate();
@@ -22,16 +23,18 @@ const Nav = () => {
         }}>
             <div style={{
                 display: 'flex',
-                alignItems: 'right',
+                alignItems: 'center',
                 gap: '10px'
             }}>
-                <div style={{
-                    fontSize: '24px',
-                    fontWeight: 'bold',
-                    color: '#3b82f6'
-                }}>
-                    RouteTO
-                </div>
+                <img
+                    src={routeToLogo}
+                    alt="RouteTO"
+                    style={{
+                        height: '50px',
+                        width: 'auto',
+                        objectFit: 'contain'
+                    }}
+                />
                 <div style={{
                     fontSize: '14px',
                     color: '#00050eff',

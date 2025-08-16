@@ -51,12 +51,20 @@
   gap: 10px;
 }
 
+.brand-logo {
+  height: 50px;
+  width: auto;
+  object-fit: contain;
+}
+
 .logo-icon {
   display: none;
   /* Hide the shield icon to match original */
 }
 
 .brand-name {
+  display: none;
+  /* Hide the text since we're using the logo now */
   font-size: 24px;
   font-weight: bold;
   color: #3b82f6;

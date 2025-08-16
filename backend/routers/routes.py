@@ -35,7 +35,8 @@ def analyze_safe_routes(
     start_lng: float = Query(..., description="Starting longitude"),
     end_lat: float = Query(..., description="Ending latitude"),
     end_lng: float = Query(..., description="Ending longitude"),
-    buffer_m: float = Query(180.0, ge=50, le=500, description="Safety buffer in meters")
+    buffer_m: float = Query(180.0, ge=50, le=500, description="Safety buffer in meters"),
+    crime_type: Optional[str] = Query(None, description="Filter by specific crime type (e.g., 'Assault', 'Robbery', 'Theft')")
 ) -> Dict[str, Any]:
     """
     Analyze route alternatives and calculate crime risk scores.
@@ -51,7 +52,10 @@ def analyze_safe_routes(
         spatial_index = None
         try:
             from services import spatial_data_loader
-            spatial_index = spatial_data_loader.ensure_spatial_index()
+            if crime_type:
+                spatial_index = spatial_data_loader.get_filtered_spatial_index(crime_type)
+            else:
+                spatial_index = spatial_data_loader.ensure_spatial_index()
         except (ImportError, Exception) as e:
             print(f"⚠️ Spatial analysis unavailable: {e}")
             # Continue without spatial analysis
@@ -75,6 +79,7 @@ def analyze_safe_routes(
                     "start_point": {"lat": start_lat, "lng": start_lng},
                     "end_point": {"lat": end_lat, "lng": end_lng},
                     "buffer_meters": buffer_m,
+                    "crime_type_filter": crime_type,
                     "total_routes": len(routes),
                     "analysis_type": "full_risk_analysis",
                     "analysis_timestamp": None

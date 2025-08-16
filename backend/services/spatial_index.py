@@ -61,8 +61,15 @@ def crime_weight(crime_type: str, date: pd.Timestamp) -> float:
     # Get severity (default 0.5 for unknown crime types)
     severity = SEVERITY.get(crime_type, 0.5)
     
-    # Calculate recency factor
+    # Calculate recency factor - handle timezone issues
     current_date = pd.Timestamp.now()
+    
+    # Ensure both dates are timezone-naive for comparison
+    if date.tz is not None:
+        date = date.tz_localize(None)
+    if current_date.tz is not None:
+        current_date = current_date.tz_localize(None)
+    
     age_days = (current_date - date).days
     recency = 1 / (1 + age_days / 30)
     

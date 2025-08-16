@@ -8,6 +8,7 @@ import os
 sys.path.append(os.path.dirname(__file__))
 
 from routers.crimes import router as crimes_router
+from routers.routes import router as routes_router
 #from routers.transit import router as transit_router  # you'll create this
 
 logging.basicConfig(level=logging.INFO)
@@ -41,6 +42,7 @@ def root():
 
 # Mount routers (each already has its own prefix/tags)
 app.include_router(crimes_router)
+app.include_router(routes_router)
 #app.include_router(transit_router)  # TODO: Create transit router
 
 # uvicorn entry (optional if you run with uvicorn CLI)

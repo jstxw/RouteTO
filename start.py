@@ -14,11 +14,11 @@ try:
     import uvicorn
     
     print("🚀 Starting RouteTO API server...")
-    print("📍 API Documentation: http://localhost:9000/docs")
-    print("🏥 Health Check: http://localhost:9000/")
+    print("📍 API Documentation: http://localhost:8000/docs")
+    print("🏥 Health Check: http://localhost:8000/")
     
     # Use string import to enable reload
-    uvicorn.run("main:app", host="0.0.0.0", port=9000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
     
 except ImportError as e:
     print(f"❌ Import error: {e}")

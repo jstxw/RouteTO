@@ -5,8 +5,7 @@
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
+  background-color: #B1D4FC;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -20,11 +19,9 @@
   box-sizing: border-box;
 }
 
-html,
-body {
+html {
   height: 100%;
   overflow: hidden;
-  background-color: #B1D4FC;
 }
 
 #root {
@@ -43,10 +40,7 @@ a:hover {
 }
 
 body {
-  margin: 0;
   display: flex;
-  place-items: center;
-  min-width: 320px;
   min-height: 100vh;
 }
 
@@ -89,10 +83,6 @@ button:focus-visible {
   }
 }
 
-body {
-  margin: 0;
-  font-family: Inter, sans-serif;
- }
  .navbar {
   background-color: #EAB308; /* bright yellow */
   padding: 1rem;

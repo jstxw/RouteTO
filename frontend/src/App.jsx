@@ -1,14 +1,11 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import React, { useState } from "react";
+import HomePage from "./Homepage.jsx";
+import "./App.css";
+import LeafletMaps from "./components/LeafletMaps.jsx";
 
-import './App.css'
-import 'leaflet/dist/leaflet.css';
+const App = () => {
+  const [activePage, setActivePage] = useState("map");
 
-import LeafletMaps from './components/LeafletMaps';
-import Nav from './components/Nav';
-
-function App() {
   return (
     <div style={{
       margin: 0,
@@ -17,11 +14,25 @@ function App() {
       width: '100vw',
       overflow: 'hidden'
     }}>
-      <Nav />
+      <div className="toggle-bar">
+        <button
+          className={activePage === "home" ? "active" : ""}
+          onClick={() => setActivePage("home")}
+        >
+          Home
+        </button>
+        <button
+          className={activePage === "map" ? "active" : ""}
+          onClick={() => setActivePage("map")}
+        >
+          Map
+        </button>
+      </div>
 
-      <LeafletMaps />
+      {activePage === "home" && <HomePage />}
+      {activePage === "map" && <LeafletMaps />}
     </div>
   );
-}
+};
 
 export default App;

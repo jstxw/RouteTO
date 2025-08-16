@@ -1,6 +1,9 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const Nav = () => {
+    const navigate = useNavigate();
+
     return (
         <nav style={{
             position: 'fixed',
@@ -48,7 +51,7 @@ const Nav = () => {
                 gap: '15px'
             }}>
                 <button
-                    onClick={() => window.location.href = '/'}
+                    onClick={() => navigate('/')}
                     style={{
                         padding: '8px 16px',
                         background: '#3b82f6',
@@ -67,7 +70,7 @@ const Nav = () => {
                 </button>
 
                 <button
-                    onClick={() => window.location.href = '/map'}
+                    onClick={() => navigate('/map')}
                     style={{
                         padding: '8px 16px',
                         background: '#22c55e',

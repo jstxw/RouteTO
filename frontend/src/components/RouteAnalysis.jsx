@@ -113,13 +113,13 @@ const RouteAnalysis = ({ map, selectedCrimeType, onCrimeTypeChange, dateFilter, 
                 const crimeTypeParam = selectedCrimeType === 'All Crimes' ? '' : `&crime_type=${encodeURIComponent(selectedCrimeType)}`;
                 const sortParam = dateFilter !== 'none' ? `&sort=recent&date_filter=${dateFilter}` : '';
                 response = await fetch(
-                    `http://localhost:8002/routes/analyze?start_lat=${startPoint.lat}&start_lng=${startPoint.lng}&end_lat=${endPoint.lat}&end_lng=${endPoint.lng}&buffer_m=50${crimeTypeParam}${sortParam}`
+                    `http://localhost:8000/routes/analyze?start_lat=${startPoint.lat}&start_lng=${startPoint.lng}&end_lat=${endPoint.lat}&end_lng=${endPoint.lng}&buffer_m=50${crimeTypeParam}${sortParam}`
                 );
             } catch (error) {
                 // Fallback to basic OSRM routes if analysis fails
                 console.log('Full analysis failed, using basic routes:', error);
                 response = await fetch(
-                    `http://localhost:8002/routes/osrm?start_lat=${startPoint.lat}&start_lng=${startPoint.lng}&end_lat=${endPoint.lat}&end_lng=${endPoint.lng}`
+                    `http://localhost:8000/routes/osrm?start_lat=${startPoint.lat}&start_lng=${startPoint.lng}&end_lat=${endPoint.lat}&end_lng=${endPoint.lng}`
                 );
             }
 

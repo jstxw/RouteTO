@@ -498,7 +498,7 @@ function LeafletMaps() {
   };
 
   return (
-    <div style={{ position: 'relative', height: '100%', width: '100%' }}>
+    <div className="leaflet-maps-container" style={{ position: 'relative', height: '100vh', width: '100vw' }}>
       {/* Floating View Mode Controls */}
       <div className="floating-controls" style={{
         position: 'absolute',
@@ -637,8 +637,8 @@ function LeafletMaps() {
         ref={mapContainerRef}
         id="map"
         style={{
-          height: '100%',
-          width: '100%',
+          height: '100vh',
+          width: '100vw',
           position: 'absolute',
           top: 0,
           left: 0,

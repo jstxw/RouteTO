@@ -1,4 +1,11 @@
 /* Leaflet Map Interaction Styles */
+.leaflet-maps-container {
+    height: 100vh !important;
+    width: 100vw !important;
+    position: relative;
+    overflow: hidden;
+}
+
 .leaflet-container {
     cursor: grab !important;
     pointer-events: auto !important;
@@ -20,8 +27,10 @@
     cursor: crosshair !important;
 }
 
-/* Ensure map div has proper interaction */
+/* Ensure map div has proper interaction and dimensions */
 #map {
+    height: 100vh !important;
+    width: 100vw !important;
     pointer-events: auto !important;
     touch-action: manipulation !important;
     user-select: none !important;

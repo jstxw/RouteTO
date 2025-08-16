@@ -4,6 +4,7 @@ import 'leaflet.heat';
 import './LeafletMaps.css';
 import RouteAnalysis from './RouteAnalysis';
 import FloatingTitle from './FloatingTitle';
+import Location from './Location';
 import {
   fetchCrimesGeoJSON,
   fetchClustersGeoJSON,
@@ -684,6 +685,9 @@ function LeafletMaps() {
           sortByRecency={sortByRecency}
           onSortByRecencyChange={setSortByRecency}
         />}
+
+        {/* Location Search Component - Standalone on left side */}
+        {map && <Location map={map} isIntegrated={false} />}
       </div>
     </div>
   );

@@ -7,6 +7,7 @@ import 'leaflet/dist/leaflet.css';
 
 import LeafletMaps from './components/LeafletMaps';
 import Nav from './components/Nav';
+import LandingPage from './components/LandingPage';
 
 function App() {
   return (

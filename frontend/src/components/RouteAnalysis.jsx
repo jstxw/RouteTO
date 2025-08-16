@@ -10,9 +10,6 @@ const RouteAnalysis = ({ map, selectedCrimeType, onCrimeTypeChange, sortByRecenc
     const [isSelectingPoints, setIsSelectingPoints] = useState(false);
     const [currentStep, setCurrentStep] = useState('start'); // 'start', 'end', 'done'
     const [analysis, setAnalysis] = useState(null);
-    const [panelPosition, setPanelPosition] = useState({ x: window.innerWidth - 310, y: 70 }); // Start at right edge
-    const [isDragging, setIsDragging] = useState(false);
-    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
     const routeLayersRef = useRef([]);
     const markersRef = useRef([]);
 
@@ -25,45 +22,6 @@ const RouteAnalysis = ({ map, selectedCrimeType, onCrimeTypeChange, sortByRecenc
         'Robbery',
         'Theft Over'
     ];
-
-    // Handle drag events for the panel
-    const handleMouseDown = (e) => {
-        setIsDragging(true);
-        setDragStart({
-            x: e.clientX - panelPosition.x,
-            y: e.clientY - panelPosition.y
-        });
-        e.preventDefault();
-    };
-
-    const handleMouseMove = (e) => {
-        if (!isDragging) return;
-        
-        // Keep panel within viewport bounds
-        const newX = Math.max(0, Math.min(window.innerWidth - 300, e.clientX - dragStart.x));
-        const newY = Math.max(60, Math.min(window.innerHeight - 100, e.clientY - dragStart.y));
-        
-        setPanelPosition({
-            x: newX,
-            y: newY
-        });
-    };
-
-    const handleMouseUp = () => {
-        setIsDragging(false);
-    };
-
-    useEffect(() => {
-        if (isDragging) {
-            document.addEventListener('mousemove', handleMouseMove);
-            document.addEventListener('mouseup', handleMouseUp);
-            
-            return () => {
-                document.removeEventListener('mousemove', handleMouseMove);
-                document.removeEventListener('mouseup', handleMouseUp);
-            };
-        }
-    }, [isDragging, dragStart, panelPosition]);
 
     // Clean up map layers
     const clearLayers = () => {
@@ -358,8 +316,8 @@ const RouteAnalysis = ({ map, selectedCrimeType, onCrimeTypeChange, sortByRecenc
     return (
         <div className="route-analysis-panel" style={{
             position: 'absolute',
-            top: `${panelPosition.y}px`,
-            left: `${panelPosition.x}px`,
+            top: '70px', // Just below navbar with minimal gap, aligned with view controls
+            right: '10px',
             background: 'white',
             padding: '15px',
             borderRadius: '8px',
@@ -368,27 +326,8 @@ const RouteAnalysis = ({ map, selectedCrimeType, onCrimeTypeChange, sortByRecenc
             minWidth: '250px',
             maxWidth: '300px',
             height: 'fit-content', // Dynamic height based on content
-            transition: isDragging ? 'none' : 'all 0.3s ease',
-            cursor: isDragging ? 'grabbing' : 'default',
-            userSelect: 'none'
-        }}
-        onMouseDown={handleMouseDown}>
-            {/* Drag Handle */}
-            <div style={{
-                width: '100%',
-                height: '20px',
-                background: 'linear-gradient(45deg, #ddd 25%, transparent 25%), linear-gradient(-45deg, #ddd 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ddd 75%), linear-gradient(-45deg, transparent 75%, #ddd 75%)',
-                backgroundSize: '4px 4px',
-                backgroundPosition: '0 0, 0 2px, 2px -2px, -2px 0px',
-                borderRadius: '4px',
-                marginBottom: '10px',
-                opacity: 0.5,
-                cursor: isDragging ? 'grabbing' : 'grab'
-            }}
-            onMouseDown={handleMouseDown}
-            />
-            
-            {/* Map */}
+            transition: 'all 0.3s ease' // Smooth transitions for size changes
+        }}>
             {/* RouteTO Title */}
             <div style={{
                 textAlign: 'center',
@@ -420,7 +359,6 @@ const RouteAnalysis = ({ map, selectedCrimeType, onCrimeTypeChange, sortByRecenc
                     <select
                         value={sortByRecency ? 'recent' : 'none'}
                         onChange={(e) => onSortByRecencyChange(e.target.value === 'recent')}
-                        onClick={(e) => e.stopPropagation()}
                         style={{
                             width: '100%',
                             padding: '6px 8px',
@@ -456,7 +394,6 @@ const RouteAnalysis = ({ map, selectedCrimeType, onCrimeTypeChange, sortByRecenc
                 <select
                     value={selectedCrimeType}
                     onChange={(e) => onCrimeTypeChange(e.target.value)}
-                    onClick={(e) => e.stopPropagation()}
                     style={{
                         width: '100%',
                         padding: '6px 8px',
@@ -475,10 +412,7 @@ const RouteAnalysis = ({ map, selectedCrimeType, onCrimeTypeChange, sortByRecenc
 
             {!isSelectingPoints && !startPoint ? (
                 <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        startPointSelection();
-                    }}
+                    onClick={startPointSelection}
                     style={{
                         width: '100%',
                         padding: '10px',
@@ -498,10 +432,7 @@ const RouteAnalysis = ({ map, selectedCrimeType, onCrimeTypeChange, sortByRecenc
                         {currentStep === 'start' ? 'Click map to select starting point' : 'Click map to select destination'}
                     </p>
                     <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setIsSelectingPoints(false);
-                        }}
+                        onClick={() => setIsSelectingPoints(false)}
                         style={{
                             width: '100%',
                             padding: '8px',
@@ -521,10 +452,7 @@ const RouteAnalysis = ({ map, selectedCrimeType, onCrimeTypeChange, sortByRecenc
                     {startPoint && endPoint && (
                         <div style={{ marginBottom: '15px' }}>
                             <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    analyzeRoutes();
-                                }}
+                                onClick={analyzeRoutes}
                                 disabled={isAnalyzing}
                                 style={{
                                     width: '100%',
@@ -542,10 +470,7 @@ const RouteAnalysis = ({ map, selectedCrimeType, onCrimeTypeChange, sortByRecenc
                             </button>
 
                             <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    resetAnalysis();
-                                }}
+                                onClick={resetAnalysis}
                                 style={{
                                     width: '100%',
                                     padding: '8px',

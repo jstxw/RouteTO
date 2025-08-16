@@ -6,6 +6,7 @@ import './App.css'
 import 'leaflet/dist/leaflet.css';
 
 import LeafletMaps from './components/LeafletMaps';
+import Nav from './components/Nav';
 
 function App() {
   return (
@@ -16,6 +17,8 @@ function App() {
       width: '100vw',
       overflow: 'hidden'
     }}>
+      <Nav />
+
       <LeafletMaps />
     </div>
   );

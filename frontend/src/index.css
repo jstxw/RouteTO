@@ -24,6 +24,7 @@ html,
 body {
   height: 100%;
   overflow: hidden;
+  background-color: #B1D4FC;
 }
 
 #root {
@@ -56,11 +57,9 @@ h1 {
 
 button {
   border-radius: 8px;
-  border: 1px solid transparent;
+  border: 1px black solid;
   padding: 0.6em 1.2em;
   font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
   background-color: #1a1a1a;
   cursor: pointer;
   transition: border-color 0.25s;
@@ -88,4 +87,128 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
+}
+
+body {
+  margin: 0;
+  font-family: Inter, sans-serif;
+ }
+ .navbar {
+  background-color: #EAB308; /* bright yellow */
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 7px 2px rgba(0, 0, 0, 0.1);
+ }
+ 
+ 
+ .navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+ }
+ 
+ 
+ .navbar-left img {
+  height: 40px;
+  width: 40px;
+ }
+ 
+ 
+ .navbar-left .logo-text {
+  font-weight: bold;
+  font-size: 1.2rem;
+ }
+ 
+ 
+ .navbar-right {
+  display: flex;
+  gap: 1rem;
+ }
+ 
+ 
+ .navbar-right a {
+  text-decoration: none;
+  color: black;
+ }
+ 
+ 
+ .gray-box {
+  margin: 3rem auto;
+  background-color: #f0f0f0;
+  border: 1px solid black;   
+  border-radius: 12px;     
+  padding: 1rem;          
+  width: 75rem;             
+  height: 13rem;
+  text-align: left;       
+ }
+ 
+ 
+ .saferoute {
+  font-size: 25px;
+ }
+ 
+ 
+ .container {
+  display: flex;
+  align-items: center;      
+  position: relative;  
+      
+ }
+ 
+ 
+ .container h3:last-child {
+  position: absolute;
+  left: 50%;                
+  transform: translateX(-50%);
+  }
+ 
+ 
+ h3 {
+  font-weight: 50;
+ 
+ 
+ }
+
+ .btn { 
+  font-weight: 100;
+  position: absolute;
+  top: 250px;  
+  left: 138px;
+  background-color: #FFD700; 
+  border: 1px solid black;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+ }
+ 
+ .route-form {
+  display: flex;
+  align-items: center;
+}
+
+.destination-input {
+  flex: 1;
+  margin-left: 1rem;
+}
+.route-form input {
+  width:33rem;
+  padding: 0.5rem;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+.route-form button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  background-color: #FFD700; /* yellow */
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.route-form button:hover {
+  background-color: #FFC107; 
 }

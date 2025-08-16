@@ -97,10 +97,19 @@ const RouteAnalysis = ({ map, onRouteSelect }) => {
     setIsAnalyzing(true);
     
     try {
-      // Use basic OSRM routes since spatial analysis isn't available yet
-      const response = await fetch(
-        `http://localhost:8002/routes/osrm?start_lat=${startPoint.lat}&start_lng=${startPoint.lng}&end_lat=${endPoint.lat}&end_lng=${endPoint.lng}`
-      );
+      // Try full route analysis with crime risk scoring first
+      let response;
+      try {
+        response = await fetch(
+          `http://localhost:8002/routes/analyze?start_lat=${startPoint.lat}&start_lng=${startPoint.lng}&end_lat=${endPoint.lat}&end_lng=${endPoint.lng}&buffer_m=50`
+        );
+      } catch (error) {
+        // Fallback to basic OSRM routes if analysis fails
+        console.log('Full analysis failed, using basic routes:', error);
+        response = await fetch(
+          `http://localhost:8002/routes/osrm?start_lat=${startPoint.lat}&start_lng=${startPoint.lng}&end_lat=${endPoint.lat}&end_lng=${endPoint.lng}`
+        );
+      }
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -108,13 +117,60 @@ const RouteAnalysis = ({ map, onRouteSelect }) => {
       
       const data = await response.json();
       
-      if (data.routes && data.routes.length > 0) {
+      // Handle different response structures
+      let routesData = data;
+      if (data.routes && Array.isArray(data.routes)) {
+        // Full analysis response structure
+        routesData = data.routes;
+      } else if (!Array.isArray(data)) {
+        // Single route or other structure
+        routesData = [data];
+      }
+      
+      if (routesData && routesData.length > 0) {
+        // Create route information with safety analysis
+        const routeInfo = routesData.map((route, index) => {
+          // Handle both analysis structure and direct route structure
+          const analysis = route.analysis || {};
+          const geometry = route.geometry || route;
+          const osrmData = route.osrm_data || route;
+          
+          const riskScore = analysis.score || route.risk_score || 0;
+          const crimesDensity = analysis.score || route.crimes_per_km || 0; // risk score is crimes per km in our system
+          
+          return {
+            id: index,
+            geometry: geometry.geometry || geometry,
+            distance: osrmData.distance_meters || osrmData.distance || 0,
+            duration: osrmData.duration_seconds || osrmData.duration || 0,
+            riskScore: riskScore,
+            crimesDensity: crimesDensity,
+            safetyRating: Math.max(0, 100 - (crimesDensity / 10)), // Convert to 0-100 scale
+            isSafest: index === 0, // Routes are sorted by safety (lowest risk first)
+            nearbyIncidents: analysis.incidents || route.nearby_crimes || 0
+          };
+        });
+        
+        setRoutes(routeInfo);
+        
+        // Set analysis results
+        const comparison = data.comparison || {};
+        setAnalysis({
+          safest_route: comparison.safest_route_id || 0,
+          safety_improvement: routeInfo.length > 1 ? 
+            ((routeInfo[1].crimesDensity - routeInfo[0].crimesDensity) / routeInfo[1].crimesDensity * 100).toFixed(1) : 
+            null,
+          analysis_note: `Crime risk analysis complete. ${routeInfo.length} route(s) analyzed with ${routeInfo[0]?.nearbyIncidents || 0} nearby incidents.`
+        });
+        
+        displayRoutes(routeInfo);
+      } else if (data.routes && data.routes.length > 0) {
+        // Fallback for basic OSRM response
         setRoutes(data.routes);
-        // Set basic analysis without risk scoring
         setAnalysis({
           safest_route: 0,
           safety_improvement: null,
-          analysis_note: "Basic route analysis - crime risk scoring temporarily unavailable"
+          analysis_note: "Basic route analysis - using fallback routing"
         });
         displayRoutes(data.routes);
       } else {
@@ -166,13 +222,22 @@ const RouteAnalysis = ({ map, onRouteSelect }) => {
         // Convert coordinates from [lng, lat] to [lat, lng] for Leaflet
         const latlngs = route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
         
-        // Color based on safety score if available
+        // Color based on crime density if available
         let color = '#3b82f6'; // Default blue
         let weight = 4;
         let opacity = 0.7;
         
-        if (route.risk_score !== undefined) {
-          // Red for high risk, yellow for medium, green for low
+        if (route.crimesDensity !== undefined) {
+          // Red for high crime density, yellow for medium, green for low
+          if (route.crimesDensity > 500) {
+            color = '#ef4444'; // Red - high crime
+          } else if (route.crimesDensity > 200) {
+            color = '#f59e0b'; // Yellow - medium crime
+          } else {
+            color = '#22c55e'; // Green - low crime
+          }
+        } else if (route.risk_score !== undefined) {
+          // Fallback to risk score if available
           if (route.risk_score > 0.7) {
             color = '#ef4444'; // Red
           } else if (route.risk_score > 0.3) {
@@ -181,7 +246,7 @@ const RouteAnalysis = ({ map, onRouteSelect }) => {
             color = '#22c55e'; // Green
           }
         } else {
-          // Different colors for different routes when no risk score
+          // Different colors for different routes when no risk data
           const colors = ['#3b82f6', '#8b5cf6', '#06b6d4'];
           color = colors[index % colors.length];
         }
@@ -202,13 +267,15 @@ const RouteAnalysis = ({ map, onRouteSelect }) => {
         // Add popup with route details
         const distance = route.distance ? `${(route.distance / 1000).toFixed(1)} km` : 'Unknown distance';
         const duration = route.duration ? `${Math.round(route.duration / 60)} min` : 'Unknown duration';
+        const crimeText = route.crimesDensity !== undefined ? `<br><strong>Crime Density:</strong> ${route.crimesDensity.toFixed(1)} crimes/km` : '';
+        const incidentText = route.nearbyIncidents !== undefined ? `<br><strong>Nearby Incidents:</strong> ${route.nearbyIncidents}` : '';
         const riskText = route.risk_score !== undefined ? `<br><strong>Risk Score:</strong> ${(route.risk_score * 100).toFixed(0)}%` : '';
-        const crimeCount = route.nearby_crimes !== undefined ? `<br><strong>Nearby Crimes:</strong> ${route.nearby_crimes}` : '';
+        const safetyNote = index === 0 ? '<br><span style="color: green;"><strong>🛡️ SAFEST ROUTE</strong></span>' : '';
         
         routeLine.bindPopup(`
           <strong>Route ${index + 1}</strong><br>
           <strong>Distance:</strong> ${distance}<br>
-          <strong>Duration:</strong> ${duration}${riskText}${crimeCount}
+          <strong>Duration:</strong> ${duration}${crimeText}${incidentText}${riskText}${safetyNote}
         `);
 
         routeLine.addTo(map);
@@ -352,15 +419,31 @@ const RouteAnalysis = ({ map, onRouteSelect }) => {
                   border: '1px solid #e5e7eb'
                 }}>
                   <strong>Route {index + 1}</strong>
+                  {index === 0 && analysis && (
+                    <span style={{ color: '#22c55e', marginLeft: '8px' }}>🛡️ SAFEST</span>
+                  )}
                   {route.distance && (
                     <div>Distance: {(route.distance / 1000).toFixed(1)} km</div>
                   )}
                   {route.duration && (
                     <div>Duration: {Math.round(route.duration / 60)} min</div>
                   )}
-                  {route.risk_score !== undefined && (
-                    <div style={{ color: route.risk_score > 0.5 ? '#ef4444' : '#22c55e' }}>
-                      Risk: {(route.risk_score * 100).toFixed(0)}%
+                  {route.crimesDensity !== undefined && (
+                    <div style={{ 
+                      color: route.crimesDensity > 500 ? '#ef4444' : 
+                             route.crimesDensity > 200 ? '#f59e0b' : '#22c55e' 
+                    }}>
+                      Crime Density: {route.crimesDensity.toFixed(1)} crimes/km
+                    </div>
+                  )}
+                  {route.nearbyIncidents !== undefined && (
+                    <div style={{ color: '#6b7280' }}>
+                      Nearby Incidents: {route.nearbyIncidents}
+                    </div>
+                  )}
+                  {route.safetyRating !== undefined && (
+                    <div style={{ color: route.safetyRating > 70 ? '#22c55e' : '#f59e0b' }}>
+                      Safety Rating: {route.safetyRating.toFixed(0)}%
                     </div>
                   )}
                 </div>

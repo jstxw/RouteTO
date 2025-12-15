@@ -149,7 +149,7 @@ const HomePage = () => {
           </div>
           <h1 className="hero-title">
             Navigate Toronto<br />
-            <span className="hero-title-highlight">Safely & Smartly</span>
+            <span className="hero-title-highlight">Safely</span>
           </h1>
           <p className="hero-description">
             RouteTO helps you plan the safest walking routes through Toronto using real-time crime data and community insights. Walk with confidence, every step of the way.

@@ -38,29 +38,6 @@
 ![example1](images/Example1.png)  
 ![example2](images/Example2.png)  
 
-## Technical Architecture
-
-### Frontend Stack
-- **React 18** with functional components and hooks
-- **Vite** for fast development and optimized builds
-- **Leaflet.js** for interactive mapping capabilities
-- **CSS-in-JS** for dynamic styling and responsive design
-
-### Backend Stack
-- **FastAPI** (Python) for high-performance API development
-- **Pandas** for efficient data processing and analysis
-- **NumPy** for numerical computations
-- **Uvicorn** ASGI server for production deployment
-
-### Mapping Technology
-- **Leaflet.js**: Open-source mapping library for interactive maps
-- **OpenStreetMap**: Base map tiles and geocoding services
-- **GeoJSON**: Standard format for geographic data exchange
-- **Leaflet.heat**: Plugin for heatmap visualizations
-- **OSRM**: Open Source Routing Machine for route calculations
-
-## Data Setup Instructions
-
 ### CSV Download Process
 
 Due to GitHub's 100MB file size limit, the crime data CSV must be downloaded separately:
